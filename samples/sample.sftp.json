@@ -1,0 +1,22 @@
+{
+    "Global": {
+        "Chroot": {
+            "Directory": "%h",
+            "StartPath": "sftp"
+        },
+        "Directories": ["sftp"]
+    },
+    "Users": [
+        {
+            "Username": "demo",
+            "Password": "demo",
+            "PublicKeys": [
+                "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCujqPOlO9xYruwECywQ62ZSxqD6L0v9Rs8qF5VIJ08WFku4e/7plS/+aTCLjnz3Wc1q2yZbMpvRfSuO6M316rbxwq8GyFvmoENAgC78uPdZ1yGHAoFiO1Iy2DTMsz2BfqiaIMCc5eKIR/Rqck72kxOdnf1/PoQ9P6ZotvzJ0U2JPLtDrd+Kh5TaHwM67NHieCgr9Cym5IP1nEFFbG97szDPusmwasRwcxWYySH2p1ktTqBw1hPc361qERnep5OoyB3vV+Bi3CW/7OabyD9SuJ9ZRO/s460CFI2buiHtNqhmEdhtWKzSgOU4SBqTYHX+ZMbmVg013psVM9dppHSuqfL7xg4CRI3kE2+/9q21sEnj1/EMpDQeYGhCJZGZv350iHRgHNZ4uQnq3ZCsk/yV4hDf+/5iERjBK2JIRNCarGgq6TbgUTbykbCGk3yR60PcN4CS9J6eq7PPPfkOmRIgx0Np5bn8Kl0+AxPef1U3sl6mzZTnq5eZ0gYj1cUzl3BwDU= demo@localhost"
+            ]
+        },
+        {
+            "Username": "test",
+            "Password": "test"
+        }
+    ]
+}

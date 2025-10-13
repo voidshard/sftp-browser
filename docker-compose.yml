@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8261:8261"
+    environment:
+      SFTP_HOST: 'sftp'
+      SFTP_PORT: 22
+  sftp:
+    image: "emberstack/sftp"
+    ports:
+      - "22:22"
+    volumes:
+      - ./samples/sample.sftp.json:/app/config/sftp.json:ro

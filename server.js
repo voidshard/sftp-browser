@@ -86,12 +86,16 @@ const initApi = asyncHandler(async(req, res, next) => {
         success: true
     };
     req.connectionOpts = {
-        host: req.headers['sftp-host'],
-        port: req.headers['sftp-port'] || 22,
+// nb. originally the application allowed any host / port. We control this now serverside
+//        host: req.headers['sftp-host'],
+//        port: req.headers['sftp-port'] || 22,
+        host: process.env.SFTP_HOST || 'localhost',
+        port: parseInt(process.env.SFTP_PORT) || 22,
         username: req.headers['sftp-username'],
         password: decodeURIComponent(req.headers['sftp-password'] || '') || undefined,
         privateKey: decodeURIComponent(req.headers['sftp-key'] || '') || undefined,
     };
+    console.log('Connection for user '+req.connectionOpts.username+' to '+req.connectionOpts.host+':'+req.connectionOpts.port);
     if (!req.connectionOpts.host)
         return res.sendError('Missing host header');
     if (!req.connectionOpts.username)

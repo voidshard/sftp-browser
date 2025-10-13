@@ -110,190 +110,6 @@ const getSortedConnectionsArray = () => {
 }
 
 /**
- * Prompts the user to export a connection.
- * @param {number} id The connection ID
- */
-const exportConnectionDialog = async (id) => {
-    const connection = connections[id];
-    const exportBody = document.createElement('div');
-    exportBody.classList = 'col gap-10';
-    exportBody.style.maxWidth = '400px';
-    exportBody.innerHTML = /*html*/`
-        <label class="selectOption">
-            <input type="radio" name="exportCredentials" value="exclude" checked>
-            Without credentials
-        </label>
-        <label class="selectOption">
-            <input type="radio" name="exportCredentials" value="include">
-            With private key or password
-        </label>
-        <small style="color: var(--red3)">Only share exports with credentials with people you trust! These credentials grant access to not only your server's files, but oftentimes an interactive terminal (SSH).</small>
-    `;
-    new PopupBuilder()
-        .setTitle(`Export ${connection.name}`)
-        .addBody(exportBody)
-        .addAction(action => action
-            .setLabel('Export')
-            .setIsPrimary(true)
-            .setClickHandler(() => {
-                const includeCredentials = $('input[name="exportCredentials"]:checked', exportBody).value == 'include';
-                const data = {
-                    name: connection.name,
-                    host: connection.host,
-                    port: connection.port,
-                    username: connection.username,
-                    path: connection.path
-                };
-                if (includeCredentials) {
-                    if (connection.key)
-                        data.key = connection.key;
-                    if (connection.password)
-                        data.password = connection.password;
-                }
-                const blob = new Blob([
-                    JSON.stringify(data)
-                ], {
-                    type: 'application/json'
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${connection.name.replace(/[^a-zA-Z-_\. ]/g, '').trim() || 'connection'}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-            }))
-        .addAction(action => action.setLabel('Cancel'))
-        .show();
-}
-
-/**
- * Opens a dialog popup to manage stored connection information.
- */
-const connectionManagerDialog = () => {
-    const popup = new PopupBuilder();
-    const el = document.createElement('div');
-    el.id = 'connectionManager';
-    el.classList = 'col gap-15';
-    const connectionValues = getSortedConnectionsArray();
-    for (const connection of connectionValues) {
-        const entry = document.createElement('div');
-        entry.classList = 'entry row gap-10 align-center';
-        entry.innerHTML = /*html*/`
-            <div class="icon flex-no-shrink">cloud</div>
-            <div class="row flex-wrap align-center flex-grow">
-                <div class="col gap-5 flex-grow">
-                    <div class="label">${connection.name}</div>
-                    <small>
-                        ${connection.username}@${connection.host}:${connection.port}
-                        <br>${connection.path}
-                    </small>
-                </div>
-                <div class="row gap-10">
-                    <button class="menu btn iconOnly small secondary" title="Connection options">
-                        <div class="icon">more_vert</div>
-                    </button>
-                    <button class="connect btn iconOnly small" title="Connect">
-                        <div class="icon">arrow_forward</div>
-                    </button>
-                </div>
-            </div>
-        `;
-        $('.btn.menu', entry).addEventListener('click', () => {
-            new ContextMenuBuilder()
-                .addItem(option => option
-                    .setLabel('Edit...')
-                    .setIcon('edit')
-                    .setClickHandler(async() => {
-                        popup.hide();
-                        await editConnectionDialog(connection.id);
-                        connectionManagerDialog();
-                    }))
-                .addItem(option => option
-                    .setLabel('Export...')
-                    .setIcon('download')
-                    .setClickHandler(async() => {
-                        exportConnectionDialog(connection.id);
-                    }))
-                .addSeparator()
-                .addItem(option => option
-                    .setLabel('Delete')
-                    .setIcon('delete')
-                    .setIsDanger(true)
-                    .setClickHandler(async() => {
-                        delete connections[connection.id];
-                        saveConnections();
-                        entry.remove();
-                    }))
-                .showAtCursor();
-        });
-        $('.btn.connect', entry).addEventListener('click', () => {
-            popup.hide();
-            setActiveConnection(connection.id);
-        });
-        el.appendChild(entry);
-    }
-    const elButtons = document.createElement('div');
-    elButtons.classList = 'row gap-10 flex-wrap';
-    const btnAdd = document.createElement('button');
-    btnAdd.classList = 'btn success small';
-    btnAdd.innerHTML = /*html*/`
-        <div class="icon">add</div>
-        New connection...
-    `;
-    btnAdd.addEventListener('click', async() => {
-        popup.hide();
-        await addNewConnectionDialog();
-        connectionManagerDialog();
-    });
-    elButtons.appendChild(btnAdd);
-    const btnImport = document.createElement('button');
-    btnImport.classList = 'btn secondary small';
-    btnImport.innerHTML = /*html*/`
-        <div class="icon">cloud_upload</div>
-        Import...
-    `;
-    btnImport.addEventListener('click', async() => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.addEventListener('change', async() => {
-            const file = input.files[0];
-            if (!file) return;
-            popup.hide();
-            const reader = new FileReader();
-            reader.addEventListener('load', async() => {
-                try {
-                    const data = JSON.parse(reader.result);
-                    const id = Date.now();
-                    connections[id] = data;
-                    saveConnections();
-                    if (!data.key && !data.password) {
-                        return editConnectionDialog(id);
-                    }
-                } catch (error) {
-                    console.error(error);
-                }
-                connectionManagerDialog();
-            });
-            reader.readAsText(file);
-        });
-        input.click();
-    });
-    elButtons.appendChild(btnImport);
-    el.appendChild(elButtons);
-    popup
-        .setTitle('Connections')
-        .addBody(el)
-        .addAction(action => action
-            .setIsPrimary(true)
-            .setLabel('Done')
-            .setClickHandler(() => {
-                saveConnections();
-            }));
-    popup.show();
-}
-
-/**
  * Opens a dialog to edit an existing connection by its ID.
  * @param {number} id The connection ID
  * @returns {Promise<number>} Resolves with the ID passed in
@@ -305,20 +121,6 @@ const editConnectionDialog = async (id) => new Promise(resolve => {
     const el = document.createElement('div');
     el.classList = 'col gap-10';
     el.innerHTML = /*html*/`
-        <div style="width: 300px; max-width: 100%">
-            <label>Friendly name</label>
-            <input type="text" class="textbox" id="inputName" value="${connection.name}" placeholder="My Server">
-        </div>
-        <div class="row gap-10 flex-wrap">
-            <div style="width: 300px; max-width: 100%">
-                <label>Host</label>
-                <input type="text" class="textbox" id="inputHost" value="${connection.host}" placeholder="example.com">
-            </div>
-            <div style="width: 120px; max-width: 100%">
-                <label>Port</label>
-                <input type="number" class="textbox" id="inputPort" value="${connection.port}" placeholder="22">
-            </div>
-        </div>
         <div style="width: 200px; max-width: 100%">
             <label>Username</label>
             <input type="text" class="textbox" id="inputUsername" value="${connection.username}" placeholder="kayla">
@@ -358,9 +160,9 @@ const editConnectionDialog = async (id) => new Promise(resolve => {
             <input type="text" class="textbox" id="inputPath" value="${connection.path}" placeholder="/home/kayla">
         </div>
     `;
-    const inputName = $('#inputName', el);
-    const inputHost = $('#inputHost', el);
-    const inputPort = $('#inputPort', el);
+    //const inputName = $('#inputName', el);
+    //const inputHost = $('#inputHost', el);
+    //const inputPort = $('#inputPort', el);
     const inputUsername = $('#inputUsername', el);
     const authTypePassword = $('#authTypePassword', el);
     const authTypeKey = $('#authTypeKey', el);
@@ -393,7 +195,10 @@ const editConnectionDialog = async (id) => new Promise(resolve => {
         input.type = 'file';
         input.addEventListener('change', () => {
             const file = input.files[0];
-            if (file.size > 1024) return;
+            if (file.size > 4096) {
+                setStatus('Error: Key file too large', true);
+                return;
+            }
             const reader = new FileReader();
             reader.addEventListener('load', () => {
                 inputKey.value = reader.result;
@@ -403,27 +208,29 @@ const editConnectionDialog = async (id) => new Promise(resolve => {
         input.click();
     });
     const popup = new PopupBuilder()
-        .setTitle('Edit connection')
+        .setTitle('Login')
         .addBody(el);
     popup.addAction(action => action
         .setIsPrimary(true)
-        .setLabel('Save')
+        .setLabel('Connect')
         .setClickHandler(() => {
-            connection.host = inputHost.value;
-            connection.port = inputPort.value || 22;
+      //      connection.host = inputHost.value;
+      //      connection.port = inputPort.value || 22;
             connection.username = inputUsername.value;
-            connection.name = inputName.value || `${connection.username}@${connection.host}`;
+        //    connection.name = inputName.value || `${connection.username}@${connection.host}`;
             if (authTypePassword.checked) {
                 connection.password = inputPassword.value;
                 delete connection.key;
+                console.log('setting password auth');
             } else {
                 connection.key = inputKey.value;
                 delete connection.password;
+                console.log('setting key auth');
             }
             connection.path = inputPath.value;
             saveConnections();
         }));
-    popup.addAction(action => action.setLabel('Cancel'));
+   // popup.addAction(action => action.setLabel('Cancel'));
     popup.show();
     popup.setOnHide(() => resolve(id));
 });
@@ -432,19 +239,32 @@ const editConnectionDialog = async (id) => new Promise(resolve => {
  * Adds a new connection with basic placeholder data and runs `editConnectionDialog()` on it.
  */
 const addNewConnectionDialog = async() => {
-    const id = Date.now();
+    const id = "default";  // use a fixed ID since we only allow one connection now
+    saved = JSON.parse(window.localStorage.getItem('connections')) || {};
+    // try read connection data from saved connection if present
     connections[id] = {
-        name: 'New Connection',
-        host: '',
-        port: 22,
-        username: '',
-        key: '',
-        password: '',
-        path: '/'
+        name: saved[id] ? saved[id].name : 'Connection',
+        // host & port are controlled server side now, even if a user sends them they are ignored
+        //host: '',
+        //port: 22,
+        username: saved[id] ? saved[id].username : '',
+        key: saved[id] ? saved[id].key : '',
+        password: saved[id] ? saved[id].password : '',
+        path: saved[id] ? saved[id].path : '/'
     };
     await editConnectionDialog(id);
-    if (!connections[id].host || !connections[id].username) {
+    if (!connections[id].username) {
         delete connections[id];
+        setStatus('Connection invalid: Missing username');
+        addNewConnectionDialog();  // try again
+    } else if (!connections[id].password && !connections[id].key) {
+        delete connections[id];
+        setStatus('Connection invalid: Must set either password or key');
+        addNewConnectionDialog();  // try again
+    } else {
+        setStatus('Attempting to connect...');
+        saveConnections();
+        setActiveConnection(id);
     }
 }
 
@@ -1905,37 +1725,6 @@ const historyContextMenu = (e, btn, paths, menu = new ContextMenuBuilder()) => {
     menu.showAtCoords(rect.left, rect.bottom-5);
 }
 
-btnConnections.addEventListener('click', () => {
-    const menu = new ContextMenuBuilder();
-    const connectionValues = getSortedConnectionsArray();
-    for (const connection of connectionValues) {
-        menu.addItem(option => option
-            .setLabel(connection.name)
-            .setIcon('cloud')
-            .setTooltip(`Click to connect to ${connection.name}<br><small>${connection.username}@${connection.host}:${connection.port}<br>${connection.path}</small>`)
-            .setClickHandler(() => {
-                setActiveConnection(connection.id);
-            }));
-    };
-    menu.addSeparator();
-    menu.addItem(option => option
-        .setLabel('Manage connections...')
-        .setIcon('smb_share')
-        .setClickHandler(connectionManagerDialog));
-    menu.addItem(option => option
-        .setLabel('New connection...')
-        .setIcon('library_add')
-        .setClickHandler(addNewConnectionDialog));
-    menu.addSeparator().addItem(item => item
-        .setIcon('code')
-        .setLabel('SFTP Browser GitHub')
-        .setClickHandler(() => {
-            window.open('https://github.com/CyberGen49/sftp-browser');
-        }));
-    const rect = btnConnections.getBoundingClientRect();
-    menu.showAtCoords(rect.left, rect.bottom-5);
-});
-
 btnNavBack.addEventListener('click', () => {
     if (backPaths.length > 0) {
         forwardPaths.push(activeConnection.path);
@@ -2512,13 +2301,7 @@ window.addEventListener('load', async() => {
         const registration = await navigator.serviceWorker.register('/worker.js');
         console.log('Service Worker registered with scope:', registration.scope);
     }
-    const params = new URLSearchParams(window.location.search);
-    const connection = connections[params.get('con') || '0'];
-    if (connection) {
-        setActiveConnection(params.get('con'), params.get('path'));
-    } else {
-        connectionManagerDialog();
-    }
+    addNewConnectionDialog();
     window.dispatchEvent(new Event('resize'));
 });
 
