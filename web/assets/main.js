@@ -211,7 +211,7 @@ const getIsMobileDevice = () => {
  */
 const getHeaders = () => {
     const headers = {
-        'sftp-host': activeConnection.host,
+        'sftp-host': apiHost,
         'sftp-port': activeConnection.port,
         'sftp-username': activeConnection.username
     };

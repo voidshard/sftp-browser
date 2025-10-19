@@ -5,7 +5,8 @@ const elPreview = $('#preview');
 const btnDownload = $('#download');
 const query = new URLSearchParams(window.location.search);
 let path = query.get('path');
-activeConnection = connections[query.get('con')];
+saved = JSON.parse(window.localStorage.getItem('connections')) || {};
+activeConnection = saved["default"];
 let fileStats = null;
 let editor;
 
