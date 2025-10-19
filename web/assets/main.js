@@ -6,7 +6,7 @@ const isElectron = window && window.process && window.process.type;
  * The hostname of the API
  * @type {string}
  */
-let apiHost = window.localStorage.getItem('apiHost') || window.location.host;
+let apiHost = window.location.host;
 let isLocalhost = window.location.hostname == 'localhost';
 let httpProtocol = isLocalhost ? 'http' : 'https';
 let wsProtocol = httpProtocol == 'http' ? 'ws' : 'wss';
